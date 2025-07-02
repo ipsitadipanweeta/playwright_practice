@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Job
+metadata:
+  name: playwright_test
+spec:
+  template:
+    spec:
+      containers:
+        - name: test-runner
+          image: playwright_allure2/playwright_test:latest
+          imagePullPolicy: Always
+          command: ["sh", "-c", "mvn clean test"]
+          volumeMounts:
+            - name: allure-results
+              mountPath: /usr/src/app/allure-results
+      restartPolicy: Never
+      volumes:
+        - name: allure-results
+          emptyDir: {}
+  backoffLimit: 1

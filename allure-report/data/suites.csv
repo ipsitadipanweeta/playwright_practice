@@ -1,0 +1,3 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Mon Jun 23 19:59:12 UTC 2025","Mon Jun 23 19:59:34 UTC 2025","22174","","tests.ui.LoginTest","","tests.ui.LoginTest","testValidLogin","testValidLogin()",""
+"passed","Mon Jun 23 19:59:34 UTC 2025","Mon Jun 23 19:59:36 UTC 2025","1518","","tests.api.ApiTests","","tests.api.ApiTests","testLoginEndpoint","testLoginEndpoint()",""
