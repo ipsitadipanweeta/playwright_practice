@@ -25,6 +25,6 @@ ENV DISPLAY=:99
 
 CMD ["sh", "-c", "xvfb-run -a mvn clean test && allure generate --clean -o allure-report"]
 
-#test
+#test1
 
 
