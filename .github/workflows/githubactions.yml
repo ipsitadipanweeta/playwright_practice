@@ -26,12 +26,11 @@ jobs:
           echo "Waiting for EC2 to become ready..."
           aws ec2 wait instance-running --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
 
-      - name: Set up SSH
+      - name: Setup SSH for EC2 access
         run: |
           mkdir -p $HOME/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/id_rsa
+          chmod 600 $HOME/.ssh/id_rsa
 
       - name: Run tests and upload Allure report on EC2
         run: |
