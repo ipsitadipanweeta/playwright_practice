@@ -45,16 +45,16 @@ jobs:
       - name: Install & Initialize Kubernetes via SSH
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            sudo apt update
-            sudo apt install -y docker.io apt-transport-https curl
+            sudo dnf update
+            sudo dnf install -y docker.io apt-transport-https curl
           
             sudo systemctl start docker
             sudo systemctl enable docker
           
             curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
             echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-            sudo apt update
-            sudo apt install -y kubelet kubeadm kubectl
+            sudo dnf update
+            sudo dnf install -y kubelet kubeadm kubectl
           
             sudo swapoff -a
             sudo kubeadm reset -f
