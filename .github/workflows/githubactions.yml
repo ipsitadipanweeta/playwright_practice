@@ -25,6 +25,10 @@ jobs:
           aws ec2 start-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
           echo "Waiting for EC2 to become ready..."
           aws ec2 wait instance-running --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
+          echo "Waiting for EC2 status checks to pass..."
+          aws ec2 wait instance-status-ok --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
+          echo "Waiting extra 30 seconds for SSH to be ready..."
+          sleep 30
 
       - name: Setup SSH for EC2 access
         run: |
