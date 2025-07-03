@@ -48,7 +48,7 @@ jobs:
           aws ec2 stop-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
   k8s-tests:
     runs-on: ubuntu-latest
-    needs: ec2-tests  # Optional: only run after ec2-tests completes
+    needs: run-on-ec2  # Optional: only run after ec2-tests completes
 
     steps:
       - name: Install Kubernetes on EC2 via SSH
