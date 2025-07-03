@@ -34,20 +34,31 @@ jobs:
 
       - name: Run tests and upload Allure report on EC2
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
+
             cd /home/ec2-user/your-project-dir
-          
+
+            # Pull latest code
             git pull origin main
+
+            # Build Docker image
             docker build -t playwright-tests .
+
+            # Run tests
             docker run --rm \
               -v /home/ec2-user/allure-results:/usr/src/app/allure-results \
               playwright-tests
-          
-            cd /home/ec2-user/your-project-dir
-            docker run --rm -v $(pwd)/allure-results:/app/allure-results -v $(pwd)/allure-report:/app/allure-report frankescobar/allure-docker-service generate
-          
-            aws s3 cp allure-report s3://your-s3-bucket/allure-report --recursive
+
+            # Generate Allure report (ensure allure CLI is installed in this image or use a container that includes it)
+            docker run --rm \
+              -v /home/ec2-user/your-project-dir/allure-results:/app/allure-results \
+              -v /home/ec2-user/your-project-dir/allure-report:/app/allure-report \
+              frankescobar/allure-docker-service generate
+
+            # Upload to S3
+            aws s3 cp /home/ec2-user/your-project-dir/allure-report s3://your-s3-bucket/allure-report --recursive
           EOF
 
       - name: Stop EC2 instance
