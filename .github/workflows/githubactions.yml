@@ -42,14 +42,16 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
+      - name: Deploy Playwright Test Job to Kubernetes
+        run: |
+          kubectl apply -f k8s/kubernetes.yaml
+
       - name: Stop EC2 instance
         if: always()
         run: |
           aws ec2 stop-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
 
-      - name: Deploy Playwright Test Job to Kubernetes
-        run: |
-          kubectl apply -f k8s/kubernetes.yaml
+
 #  k8s-tests:
 #    runs-on: ubuntu-latest
 #    needs: run-on-ec2  # Optional: only run after ec2-tests completes
