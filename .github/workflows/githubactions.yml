@@ -46,32 +46,36 @@ jobs:
         if: always()
         run: |
           aws ec2 stop-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
-  k8s-tests:
-    runs-on: ubuntu-latest
-    needs: run-on-ec2  # Optional: only run after ec2-tests completes
 
-    steps:
-      - name: Install Kubernetes on EC2 via SSH
+      - name: Deploy Playwright Test Job to Kubernetes
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_MASTER_IP }} << 'EOF'
-            # Install Docker and Kubernetes components
-            sudo apt update
-            sudo apt install -y docker.io apt-transport-https curl
-
-            curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-            echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-
-            sudo apt update
-            sudo apt install -y kubelet kubeadm kubectl
-
-            # Initialize Kubernetes
-            sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-
-            # Set up kubeconfig for ec2-user
-            mkdir -p $HOME/.kube
-            sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-            sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-            # Apply a network plugin (Flannel)
-            kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-          EOF
+          kubectl apply -f k8s/kubernetes.yaml
+#  k8s-tests:
+#    runs-on: ubuntu-latest
+#    needs: run-on-ec2  # Optional: only run after ec2-tests completes
+#
+#    steps:
+#      - name: Install Kubernetes on EC2 via SSH
+#        run: |
+#          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_MASTER_IP }} << 'EOF'
+#            # Install Docker and Kubernetes components
+#            sudo apt update
+#            sudo apt install -y docker.io apt-transport-https curl
+#
+#            curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+#            echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+#
+#            sudo apt update
+#            sudo apt install -y kubelet kubeadm kubectl
+#
+#            # Initialize Kubernetes
+#            sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+#
+#            # Set up kubeconfig for ec2-user
+#            mkdir -p $HOME/.kube
+#            sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+#            sudo chown $(id -u):$(id -g) $HOME/.kube/config
+#
+#            # Apply a network plugin (Flannel)
+#            kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+#          EOF

@@ -5,16 +5,18 @@ metadata:
 spec:
   template:
     spec:
+      parallelism: 2
+      completions: 2
       containers:
         - name: test-runner
           image: playwright_allure2/playwright_test:latest
           imagePullPolicy: Always
           command: ["sh", "-c", "mvn clean test"]
           volumeMounts:
-            - name: allure-results
-              mountPath: /usr/src/app/allure-results
+            - name: allure-report
+              mountPath: /usr/src/app/allure-report
       restartPolicy: Never
       volumes:
-        - name: allure-results
+        - name: allure-report
           emptyDir: {}
   backoffLimit: 1
