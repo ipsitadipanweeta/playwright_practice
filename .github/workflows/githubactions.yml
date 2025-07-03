@@ -42,9 +42,40 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
-      - name: Deploy Playwright Test Job to Kubernetes
+      - name: Install & Initialize Kubernetes via SSH
         run: |
-          kubectl apply -f k8s/kubernetes.yaml
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            sudo apt update
+            sudo apt install -y docker.io apt-transport-https curl
+            
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            
+            curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+            echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+            sudo apt update
+            sudo apt install -y kubelet kubeadm kubectl
+            
+            sudo swapoff -a
+            sudo kubeadm reset -f
+            sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+            
+            mkdir -p $HOME/.kube
+            sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+            sudo chown $(id -u):$(id -g) $HOME/.kube/config
+            
+            kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+            
+            echo "Kubernetes setup complete!"
+            EOF
+
+      - name: Deploy test job to Kubernetes
+        run: |
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+              cd /home/ec2-user/.kube # Update to your real path
+              kubectl apply -f k8s/kubernetes.yaml
+              kubectl get pods
+            EOF
 
       - name: Stop EC2 instance
         if: always()
