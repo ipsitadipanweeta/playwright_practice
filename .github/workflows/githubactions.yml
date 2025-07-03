@@ -45,60 +45,37 @@ jobs:
       - name: Install & Initialize Kubernetes via SSH
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-
-            # Install Docker
-            sudo yum update -y
-            sudo yum install -y docker
+            sudo apt update
+            sudo apt install -y docker.io apt-transport-https curl
+          
             sudo systemctl start docker
             sudo systemctl enable docker
-
-            # Install Kubernetes components
-            K8S_VERSION=v1.29.0
-            curl -LO https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm
-            curl -LO https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl
-            curl -LO https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubelet
-
-            chmod +x kubeadm kubectl kubelet
-            sudo mv kubeadm /usr/local/bin/
-            sudo mv kubectl /usr/local/bin/
-            sudo mv kubelet /usr/local/bin/
-
-            # Enable and start kubelet AFTER kubeadm init
-            sudo mkdir -p /etc/systemd/system/kubelet.service.d
-
-            # Turn off swap (required by Kubernetes)
+          
+            curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+            echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+            sudo apt update
+            sudo apt install -y kubelet kubeadm kubectl
+          
             sudo swapoff -a
-            sudo sed -i '/ swap / s/^/#/' /etc/fstab
-
-            # Initialize the cluster
             sudo kubeadm reset -f
             sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-
-            # Setup kubeconfig for ec2-user
+          
             mkdir -p $HOME/.kube
             sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
             sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-            # Enable and start kubelet (kubeadm already creates config for it)
-            sudo systemctl daemon-reexec
-            sudo systemctl daemon-reload
-            sudo systemctl enable kubelet
-            sudo systemctl start kubelet
-
-            # Install CNI (Flannel)
+          
             kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-
-            echo "✅ Kubernetes cluster setup complete"
-          EOF
+          
+            echo "Kubernetes setup complete!"
+            EOF
 
       - name: Deploy test job to Kubernetes
         run: |
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-              cd /home/ec2-user/.kube # Update to your real path
-              kubectl apply -f k8s/kubernetes.yaml
-              kubectl get pods
-            EOF
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/ec2-user/.kube # Update to your real path
+            kubectl apply -f k8s/kubernetes.yaml
+            kubectl get pods
+          EOF
 
       - name: Stop EC2 instance
         if: always()
