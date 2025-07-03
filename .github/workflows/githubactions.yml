@@ -44,12 +44,6 @@ jobs:
 
       - name: Install & Initialize Kubernetes via SSH
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-
-            # Install Docker
-            sudo yum update -y
-            sudo yum install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
 
