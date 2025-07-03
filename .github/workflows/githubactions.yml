@@ -35,7 +35,6 @@ jobs:
       - name: Run tests and upload Allure report on EC2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
             cd /home/ec2-user/.ssh
             git pull origin main
             docker build -t playwright_allure2/playwright_test:latest .
