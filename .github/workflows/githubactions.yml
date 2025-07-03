@@ -41,13 +41,19 @@ jobs:
             docker run --rm -v $(pwd)/allure-report:/usr/src/app/allure-report playwright_allure2/playwright_test
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
-          
+
       - name: Install & Initialize Kubernetes via SSH
         run: |
+          if ! command -v docker &> /dev/null; then
+            echo "Docker not found. Installing..."
+            sudo dnf install -y docker.io
             sudo systemctl start docker
             sudo systemctl enable docker
+            else
+            echo "Docker already installed."
+            fi
 
-            # Install Kubernetes components
+  # Install Kubernetes components
             K8S_VERSION=v1.29.0
             curl -LO https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubeadm
             curl -LO https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl
