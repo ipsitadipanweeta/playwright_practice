@@ -46,13 +46,6 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
-      - name: Initialize Kubernetes on EC2 and set up kubeconfig
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            sudo swapoff -a
-            sudo kubeadm reset -f
-            sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-
       - name: Set up kubeconfig
         run: |
           mkdir -p $HOME/.kube
