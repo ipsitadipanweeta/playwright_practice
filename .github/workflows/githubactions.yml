@@ -46,6 +46,14 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
+      - name: Install crictl for kubeadm preflight checks
+        run: |
+          VERSION="v1.29.0"
+          curl -LO https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-amd64.tar.gz
+          sudo tar -C /usr/local/bin -xzf crictl-${VERSION}-linux-amd64.tar.gz
+          rm -f crictl-${VERSION}-linux-amd64.tar.gz
+
+
       - name: Initialize Kubernetes cluster on EC2 and configure kubeconfig
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
