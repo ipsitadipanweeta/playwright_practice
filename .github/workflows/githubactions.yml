@@ -62,9 +62,9 @@ jobs:
           which crictl
           crictl --version
 
-      - name: Ensure crictl is available to root
-        run: |
-          sudo ln -sf /usr/local/bin/crictl /usr/bin/crictl
+#      - name: Ensure crictl is available to root
+#        run: |
+#          sudo ln -sf /usr/local/bin/crictl /usr/bin/crictl
           
             # Initialize the Kubernetes cluster
             sudo kubeadm init --pod-network-cidr=10.244.0.0/16
