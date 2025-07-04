@@ -50,7 +50,6 @@ jobs:
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG_DATA }}" > $HOME/.kube/config
-          sudo cp -i /etc/kubernetes/admin.conf /home/ec2-user/.kube/config
           sudo chown ec2-user:ec2-user /home/ec2-user/.kube/config
 
       - name: Install kubectl
