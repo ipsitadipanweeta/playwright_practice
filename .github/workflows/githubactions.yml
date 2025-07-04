@@ -44,13 +44,14 @@ jobs:
             docker build -t playwright_allure2/playwright_test:latest .
             docker run --rm -v $(pwd)/allure-report:/usr/src/app/allure-report playwright_allure2/playwright_test
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
+            EOF
 
       - name: Install & Initialize Kubernetes via SSH
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
           
-            # Install Docker
+        # Install Docker
             sudo dnf update -y
             sudo dnf install -y docker conntrack socat ebtables
             sudo systemctl enable docker
@@ -61,7 +62,7 @@ jobs:
             sudo systemctl daemon-reexec
             sudo systemctl daemon-reload
 
-  # Install kubectl, kubeadm, kubelet manually
+        # Install kubectl, kubeadm, kubelet manually
             K8S_VERSION=v1.29.0
           
             # kubectl
