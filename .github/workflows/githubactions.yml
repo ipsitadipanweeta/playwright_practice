@@ -48,23 +48,21 @@ jobs:
 
      
 
-      - name: Initialize Kubernetes cluster on EC2 and configure kubeconfig
+      - name: Install Kubernetes tools on EC2
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
+            set -e
+            # Set up Kubernetes yum repo
+            sudo curl -o /etc/yum.repos.d/kubernetes.repo https://raw.githubusercontent.com/aws-samples/amazon-eks-custom-amis/main/kubernetes.repo
+          
+            # Install kubeadm, kubectl, kubelet
+            sudo yum install -y kubelet-1.29.0 kubectl-1.29.0 kubeadm-1.29.0 --disableexcludes=kubernetes
+          
+            # Enable kubelet
+            sudo systemctl enable --now kubelet
+          EOF
 
-      - name: Install crictl for kubeadm preflight checks
-        run: |
-          VERSION="v1.29.0"
-          curl -LO https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-amd64.tar.gz
-          sudo tar -C /usr/local/bin -xzf crictl-${VERSION}-linux-amd64.tar.gz
-          rm -f crictl-${VERSION}-linux-amd64.tar.gz
-          which crictl
-          crictl --version
-
-      - name: Initialize the Kubernetes cluster
-        run: |
-          sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+     
 
       - name: Setup kubeconfig for ec2-user
         run: |
