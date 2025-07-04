@@ -64,7 +64,7 @@ jobs:
 #
       - name: Apply Kubernetes manifests via SSH
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             kubectl apply -f /home/ec2-user/k8s/kubernetes.yaml
           EOF
 
