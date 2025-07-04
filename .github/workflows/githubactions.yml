@@ -44,19 +44,19 @@ jobs:
               -o ServerAliveCountMax=10 \
               ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             set -ex
+            cd /home/ec2-user
             git clone https://github.com/ipsitadipanweeta/playwright_practice.git
-            cd /home/ec2-user/playwright_test
+            cd /home/ec2-user/playwright_practice
 
             echo "Pulling latest code..."
             git pull origin main
 
             echo "Building Docker image..."
-            timeout 10m docker build -t playwright_test .
+            timeout 10m docker build -t playwright_allure2/playwright_test:latest .
+
 
             echo "Running tests..."
-            timeout 15m docker run --rm \
-              -v $(pwd)/allure-report:/usr/src/app/allure-report \
-              playwright_test
+            timeout 15m docker run --rm -v $(pwd)/allure-report:/usr/src/app/allure-report playwright_allure2/playwright_test
 
             echo "Uploading Allure report..."
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
