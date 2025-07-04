@@ -41,6 +41,10 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             set -e  # Exit immediately if any command fails
             
+            # Install git (fixes the error)
+            sudo yum update -y
+            sudo yum install -y git
+          
             # Ensure repo is up-to-date
             git pull origin main
       
@@ -67,10 +71,6 @@ jobs:
           # Install K3s
           curl -sfL https://get.k3s.io | sh -
           export KUBECONFIG=/etc/rancher/k3s/kubernetes.yaml
-          
-          # Install git (fixes the error)
-          sudo yum update -y
-          sudo yum install -y git
           
           # Clone your repo
           mkdir -p ~/test-project
