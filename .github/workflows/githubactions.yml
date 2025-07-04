@@ -58,7 +58,12 @@ jobs:
             sudo systemctl enable docker
             sudo systemctl start docker
           
-            # Install kubectl, kubeadm, kubelet manually
+            sudo dnf remove -y kubelet
+            sudo rm -f /etc/systemd/system/kubelet.service
+            sudo systemctl daemon-reexec
+            sudo systemctl daemon-reload
+
+  # Install kubectl, kubeadm, kubelet manually
             K8S_VERSION=v1.29.0
           
             # kubectl
