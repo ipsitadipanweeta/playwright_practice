@@ -67,7 +67,7 @@ jobs:
           sudo ln -sf /usr/local/bin/crictl /usr/bin/crictl
           
             # Initialize the Kubernetes cluster
-            sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem,FileExisting-crictl
+            sudo kubeadm init --pod-network-cidr=10.244.0.0/16
           
             # Setup kubeconfig for ec2-user
             mkdir -p $HOME/.kube
