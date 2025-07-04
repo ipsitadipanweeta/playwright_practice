@@ -71,7 +71,8 @@ jobs:
             mkdir -p ~/.kube
             sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
             sudo chown $(id -u):$(id -g) ~/.kube/config
-            EOF
+            kubectl apply -f /home/ec2-user/k8s/kubernetes.yaml       
+          EOF
 
       - name: Copy kubeconfig from EC2 to runner
         run: |
