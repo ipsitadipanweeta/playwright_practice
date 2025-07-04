@@ -43,8 +43,9 @@ jobs:
             git pull origin main
             docker build -t playwright_allure2/playwright_test:latest .
             docker run --rm -v $(pwd)/allure-report:/usr/src/app/allure-report playwright_allure2/playwright_test
-            aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
-            EOF
+            aws s3 cp allure-report s3://ipsitas3/allure-report --recursive 
+          'EOF'
+
 
       - name: Install & Initialize Kubernetes via SSH
         run: |
