@@ -44,8 +44,6 @@ jobs:
               -o ServerAliveCountMax=10 \
               ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             set -ex
-            cd /home/ec2-user
-            git clone https://github.com/ipsitadipanweeta/playwright_practice.git
             cd /home/ec2-user/playwright_practice
 
             echo "Pulling latest code..."
