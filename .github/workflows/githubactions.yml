@@ -63,7 +63,7 @@ jobs:
 
       - name: Deploy Playwright Job to Kubernetes
         run: |
-          kubectl apply -f k8s/k8s-playwright-job.yaml
+          kubectl apply -f k8s/kubernetes.yaml
 
       - name: Stop EC2 instance
         if: always()
