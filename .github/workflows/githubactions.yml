@@ -59,7 +59,11 @@ jobs:
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
           kubectl version --client
-      
+
+      - name: Copy kubeconfig from EC2 to GitHub Actions runner
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} 'cat ~/.kube/config' > kubeconfig
+          mv kubeconfig $HOME/.kube/config
 
       - name: Deploy Playwright Job to Kubernetes
         run: |
