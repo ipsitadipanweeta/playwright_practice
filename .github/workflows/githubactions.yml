@@ -46,11 +46,17 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
-      - name: Set up kubeconfig
+      - name: Initialize Kubernetes cluster on EC2 and configure kubeconfig
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG_DATA }}" > $HOME/.kube/config
-          sudo chown ec2-user:ec2-user /home/ec2-user/.kube/config
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            # Initialize the Kubernetes cluster
+            sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem,FileExisting-crictl
+          
+            # Setup kubeconfig for ec2-user
+            mkdir -p $HOME/.kube
+            sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+            sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
       - name: Install kubectl
         run: |
