@@ -46,81 +46,49 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
-      - name: Install & Initialize Kubernetes via SSH
+      - name: Install & Initialize Kubernetes on Ubuntu 20.04 EC2 via SSH
         run: |
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
           
-            # Install Docker
-            sudo dnf update -y
-            sudo dnf install -y docker conntrack socat ebtables
+            # Update and install Docker
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io apt-transport-https ca-certificates curl
+          
             sudo systemctl enable docker
             sudo systemctl start docker
           
-            sudo dnf remove -y kubelet
-            sudo rm -f /etc/systemd/system/kubelet.service
-            sudo systemctl daemon-reexec
-            sudo systemctl daemon-reload
-  
-            # Install kubectl, kubeadm, kubelet manually
-            K8S_VERSION=v1.29.0
-            
-            # kubectl
-            curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubectl
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-            
-            # kubeadm
-            curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubeadm
-            chmod +x kubeadm
-            sudo mv kubeadm /usr/local/bin/
-          
-            # kubelet
-            curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubelet
-            chmod +x kubelet
-            sudo mv kubelet /usr/local/bin/
-          
-            # Setup kubelet as a systemd service
-            sudo bash -c 'cat <<EOF2 > /etc/systemd/system/kubelet.service
-            [ Unit ]
-            Description=kubelet: The Kubernetes Node Agent
-            Documentation=https://kubernetes.io/docs/home/
-            After=network.target
-        
-            [ Service ]
-            ExecStart=/usr/local/bin/kubelet
-            Restart=always
-            StartLimitInterval=0
-            RestartSec=10
-            
-            [Install]
-            WantedBy=multi-user.target
-            EOF2'
-            
-            sudo systemctl daemon-reexec
-            sudo systemctl daemon-reload
-            sudo systemctl enable kubelet
-            sudo systemctl start kubelet
-            
-            # Disable swap (required for kubeadm)
+            # Disable swap (required for Kubernetes)
             sudo swapoff -a
-            
-            # Reset (clean up any existing cluster config if re-run)
-            sudo kubeadm reset -f
-            
-            # Initialize the Kubernetes cluster
-            sudo kubeadm init --pod-network-cidr=10.244.0.0/16
-            
-            # Setup kubeconfig
+            sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+          
+            # Add Kubernetes APT repo
+            sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+            echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+          
+            # Install Kubernetes components
+            sudo apt-get update -y
+            sudo apt-get install -y kubelet kubeadm kubectl
+            sudo apt-mark hold kubelet kubeadm kubectl
+          
+            # Reset any old setup
+            sudo kubeadm reset -f || true
+            sudo systemctl daemon-reload
+            sudo systemctl restart kubelet
+          
+            # Initialize Kubernetes
+            sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem
+          
+            # Set up kubeconfig
             mkdir -p \$HOME/.kube
             sudo cp -i /etc/kubernetes/admin.conf \$HOME/.kube/config
             sudo chown \$(id -u):\$(id -g) \$HOME/.kube/config
-            
-            # Apply Flannel CNI plugin
+          
+            # Apply Flannel CNI
             kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-            
-            echo "✅ Kubernetes setup complete!"
-            EOF
+          
+            echo "✅ Kubernetes cluster is up on Ubuntu 20.04!"
+          EOF
 
       - name: Stop EC2 instance
         if: always()
