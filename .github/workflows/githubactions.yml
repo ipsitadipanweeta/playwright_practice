@@ -40,9 +40,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             set -e  # Exit immediately if any command fails
-      
-            cd /home/ec2-user/playwright_test  # Change this to your actual project directory
-      
+            
             # Ensure repo is up-to-date
             git pull origin main
       
