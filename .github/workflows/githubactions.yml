@@ -62,6 +62,11 @@ jobs:
 #            echo "✅ Done"
 #          EOF
 #
+      - name: Apply Kubernetes manifests via SSH
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            kubectl apply -f /home/ec2-user/k8s/kubernetes.yaml
+          EOF
 
 
       - name: Install K3s and Setup Kubernetes Cluster
@@ -71,7 +76,6 @@ jobs:
             mkdir -p ~/.kube
             sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
             sudo chown $(id -u):$(id -g) ~/.kube/config
-            kubectl apply -f /home/ec2-user/k8s/kubernetes.yaml       
           EOF
 
       - name: Copy kubeconfig from EC2 to runner
