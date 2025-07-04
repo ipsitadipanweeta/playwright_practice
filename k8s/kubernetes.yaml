@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Job
 metadata:
-  name: playwright_test
+  name: playwright_practice
 spec:
   template:
     spec:

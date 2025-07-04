@@ -62,56 +62,40 @@ jobs:
 #            echo "✅ Done"
 #          EOF
 #
-      
 
-      - name: Install K3s & Deploy Tests
+
+      - name: Install K3s and Setup Kubernetes Cluster
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
-          
-          # Install K3s
-          curl -sfL https://get.k3s.io | sh -
-          export KUBECONFIG=/etc/rancher/k3s/kubernetes.yaml
-          
-          # Clone your repo
-          mkdir -p ~/test-project
-          cd ~/test-project
-          git clone https://github.com/ipsitadipanweeta/playwright_practice.git .
-          cat <<EOF2 > kubernetes.yaml
-          apiVersion: batch/v1
-          kind: Job
-          metadata:
-            name: playwright-tests
-          spec:
-            template:
-              spec:
-                containers:
-                  - name: tests
-                    image: playwright_allure2/playwright_test:latest
-                    volumeMounts:
-                      - name: allure
-                        mountPath: /usr/src/app/allure-report
-                restartPolicy: Never
-                volumes:
-                  - name: allure
-                    emptyDir: { }
-          backoffLimit: 1
-          EOF2
-      
-          docker build -t playwright_allure2/playwright_test:latest .
-          k3s kubectl apply -f kubernetes.yaml
-      
-          echo "✅ Job started. Waiting for completion..."
-          while [[ $(k3s kubectl get jobs playwright-tests -o jsonpath='{.status.succeeded}') != "1" ]]; do
-          echo "Waiting for job..."
-          sleep 10
-          done
-      
-          echo "✅ Job complete. Exporting Allure report..."
-          POD_NAME=$(k3s kubectl get pod -l job-name=playwright-tests -o jsonpath="{.items[0].metadata.name}")
-          k3s kubectl cp $POD_NAME:/usr/src/app/allure-report ./allure-report
-          
-          aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            curl -sfL https://get.k3s.io | sh -
+            mkdir -p ~/.kube
+            sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+            sudo chown $(id -u):$(id -g) ~/.kube/config
+            EOF
+
+      - name: Copy kubeconfig from EC2 to runner
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} 'cat ~/.kube/config' > kubeconfig
+          mkdir -p ~/.kube
+          sed -i "s/127.0.0.1/${{ secrets.EC2_HOST }}/g" kubeconfig
+          mv kubeconfig ~/.kube/config
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+      - name: Deploy tests to Kubernetes
+        run: kubectl apply -f k8s/kubernetes.yaml
+
+      - name: Wait for job completion
+        run: |
+          kubectl wait --for=condition=complete --timeout=300s job/kubernetes
+
+      - name: Copy Allure report to S3 from EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            aws s3 cp /home/ec2-user/allure-report s3://your-s3-bucket/allure-report --recursive
           EOF
 
       - name: Stop EC2 instance
