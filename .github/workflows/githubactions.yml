@@ -50,12 +50,20 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
           set -e
+          
+          # Install K3s
           curl -sfL https://get.k3s.io | sh -
-          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          export KUBECONFIG=/etc/rancher/k3s/kubernetes.yaml
+          
+          # Install git (fixes the error)
+          sudo yum update -y
+          sudo yum install -y git
+          
+          # Clone your repo
           mkdir -p ~/test-project
           cd ~/test-project
           git clone https://github.com/ipsitadipanweeta/playwright_practice.git .
-          cat <<EOF2 > k8s-job.yaml
+          cat <<EOF2 > kubernetes.yaml
           apiVersion: batch/v1
           kind: Job
           metadata:
