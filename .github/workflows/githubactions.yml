@@ -46,53 +46,53 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
-      - name: Install & Initialize Kubernetes on Ubuntu 20.04 EC2 via SSH
+      - name: Install K3s & Deploy Tests
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
+          set -e
+          curl -sfL https://get.k3s.io | sh -
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          mkdir -p ~/test-project
+          cd ~/test-project
+          git clone https://github.com/ipsitadipanweeta/playwright_practice.git .
+          cat <<EOF2 > k8s-job.yaml
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: playwright-tests
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: tests
+                    image: playwright_allure2/playwright_test:latest
+                    volumeMounts:
+                      - name: allure
+                        mountPath: /usr/src/app/allure-report
+                restartPolicy: Never
+                volumes:
+                  - name: allure
+                    emptyDir: { }
+          backoffLimit: 1
+          EOF2
+      
+          docker build -t playwright_allure2/playwright_test:latest .
+          k3s kubectl apply -f kubernetes.yaml
+      
+          echo "✅ Job started. Waiting for completion..."
+          while [[ $(k3s kubectl get jobs playwright-tests -o jsonpath='{.status.succeeded}') != "1" ]]; do
+          echo "Waiting for job..."
+          sleep 10
+          done
+      
+          echo "✅ Job complete. Exporting Allure report..."
+          POD_NAME=$(k3s kubectl get pod -l job-name=playwright-tests -o jsonpath="{.items[0].metadata.name}")
+          k3s kubectl cp $POD_NAME:/usr/src/app/allure-report ./allure-report
           
-            # Update and install Docker
-            sudo apt-get update -y
-            sudo apt-get install -y docker.io apt-transport-https ca-certificates curl
-          
-            sudo systemctl enable docker
-            sudo systemctl start docker
-          
-            # Disable swap (required for Kubernetes)
-            sudo swapoff -a
-            sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
-          
-            # Add Kubernetes APT repo
-            sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-            echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
-          
-            # Install Kubernetes components
-            sudo apt-get update -y
-            sudo apt-get install -y kubelet kubeadm kubectl
-            sudo apt-mark hold kubelet kubeadm kubectl
-          
-            # Reset any old setup
-            sudo kubeadm reset -f || true
-            sudo systemctl daemon-reload
-            sudo systemctl restart kubelet
-          
-            # Initialize Kubernetes
-            sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU,Mem
-          
-            # Set up kubeconfig
-            mkdir -p \$HOME/.kube
-            sudo cp -i /etc/kubernetes/admin.conf \$HOME/.kube/config
-            sudo chown \$(id -u):\$(id -g) \$HOME/.kube/config
-          
-            # Apply Flannel CNI
-            kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-          
-            echo "✅ Kubernetes cluster is up on Ubuntu 20.04!"
+          aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
       - name: Stop EC2 instance
         if: always()
         run: |
           aws ec2 stop-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
-
-
