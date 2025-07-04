@@ -48,21 +48,33 @@ jobs:
 
      
 
-      - name: Install Kubernetes tools on EC2
-        run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-            # Set up Kubernetes yum repo
-            sudo curl -o /etc/yum.repos.d/kubernetes.repo https://raw.githubusercontent.com/aws-samples/amazon-eks-custom-amis/main/kubernetes.repo
+          set -e
           
-            # Install kubeadm, kubectl, kubelet
-            sudo yum install -y kubelet-1.29.0 kubectl-1.29.0 kubeadm-1.29.0 --disableexcludes=kubernetes
+          # Add Kubernetes repo manually
+          sudo tee /etc/yum.repos.d/kubernetes.repo <<EOF2
+          [ kubernetes ]
+          name=Kubernetes
+          baseurl=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/repodata/repomd.xml.key
+          EOF2
+      
+          # Refresh DNF cache
+          sudo dnf clean all
+          sudo dnf makecache
           
-            # Enable kubelet
-            sudo systemctl enable --now kubelet
+          # Install kubelet, kubeadm, and kubectl
+          sudo dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+          
+          # Enable and start kubelet
+          sudo systemctl enable --now kubelet
+      
+          echo "✅ Kubernetes components installed"
           EOF
-
-     
+          
+      
 
       - name: Setup kubeconfig for ec2-user
         run: |
