@@ -46,61 +46,78 @@ jobs:
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
-     
-      - name: Initialize the Kubernetes cluster
+
+      - name: Install & Initialize Kubernetes via SSH
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
+            set -e
           
-          # Add Kubernetes repo manually
-          sudo tee /etc/yum.repos.d/kubernetes.repo <<EOF2
-          [ kubernetes ]
-          name=Kubernetes
-          baseurl=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/
-          enabled=1
-          gpgcheck=1
-          gpgkey=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/repodata/repomd.xml.key
-          EOF2
+            # Install Docker
+            sudo dnf update -y
+            sudo dnf install -y docker conntrack socat ebtables
+            sudo systemctl enable docker
+            sudo systemctl start docker
+          
+            # Install kubectl, kubeadm, kubelet manually
+            K8S_VERSION=v1.29.0
+          
+            # kubectl
+            curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubectl
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+          
+            # kubeadm
+            curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubeadm
+            chmod +x kubeadm
+            sudo mv kubeadm /usr/local/bin/
+          
+            # kubelet
+            curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubelet
+            chmod +x kubelet
+            sudo mv kubelet /usr/local/bin/
+          
+            # Setup kubelet as a systemd service
+            sudo bash -c 'cat <<EOF2 > /etc/systemd/system/kubelet.service
+          [ Unit ]
+          Description=kubelet: The Kubernetes Node Agent
+          Documentation=https://kubernetes.io/docs/home/
+          After=network.target
       
-          # Refresh DNF cache
-          sudo dnf clean all
-          sudo dnf makecache
+          [ Service ]
+          ExecStart=/usr/local/bin/kubelet
+          Restart=always
+          StartLimitInterval=0
+          RestartSec=10
           
-          # Install kubelet, kubeadm, and kubectl
-          sudo dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+          [Install]
+          WantedBy=multi-user.target
+          EOF2'
           
-          # Enable and start kubelet
-          sudo systemctl enable --now kubelet
-      
-          echo "✅ Kubernetes components installed"
+          sudo systemctl daemon-reexec
+          sudo systemctl daemon-reload
+          sudo systemctl enable kubelet
+          sudo systemctl start kubelet
+          
+          # Disable swap (required for kubeadm)
+          sudo swapoff -a
+          
+          # Reset (clean up any existing cluster config if re-run)
+          sudo kubeadm reset -f
+          
+          # Initialize the Kubernetes cluster
+          sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+          
+          # Setup kubeconfig
+          mkdir -p \$HOME/.kube
+          sudo cp -i /etc/kubernetes/admin.conf \$HOME/.kube/config
+          sudo chown \$(id -u):\$(id -g) \$HOME/.kube/config
+          
+          # Apply Flannel CNI plugin
+          kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+          
+          echo "✅ Kubernetes setup complete!"
           EOF
-          
       
-
-      - name: Setup kubeconfig for ec2-user
-        run: |
-          mkdir -p $HOME/.kube
-          sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-          sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-      - name: Install kubectl
-        run: |
-          KUBECTL_VERSION=$(curl -Ls https://dl.k8s.io/release/stable.txt)
-          echo "Installing kubectl version: $KUBECTL_VERSION"
-          curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          kubectl version --client
-
-      - name: Copy kubeconfig from EC2 to GitHub Actions runner
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} 'cat ~/.kube/config' > kubeconfig
-          mkdir -p $HOME/.kube
-          mv kubeconfig $HOME/.kube/config
-
-      - name: Deploy Playwright Job to Kubernetes
-        run: |
-          kubectl apply -f k8s/kubernetes.yaml
 
       - name: Stop EC2 instance
         if: always()
