@@ -44,7 +44,6 @@ jobs:
             docker build -t playwright_allure2/playwright_test:latest .
             docker run --rm -v $(pwd)/allure-report:/usr/src/app/allure-report playwright_allure2/playwright_test
             aws s3 cp allure-report s3://ipsitas3/allure-report --recursive 
-          'EOF'
 
       - name: Install & Initialize Kubernetes via SSH
         run: |
@@ -120,8 +119,7 @@ jobs:
           kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
           
           echo "✅ Kubernetes setup complete!"
-          EOF
-      
+
 
       - name: Stop EC2 instance
         if: always()
