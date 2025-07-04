@@ -38,15 +38,32 @@ jobs:
 
       - name: Run tests and upload Allure report on EC2
         run: |
-              ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-              set -ex  # Fail fast and print commands          
-              cd /home/ec2-user/.ssh
-              git pull origin main
-              docker build -t playwright_allure2/playwright_test:latest .
-              docker run --rm -v $(pwd)/allure-report:/usr/src/app/allure-report playwright_allure2/playwright_test
-              aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
-            EOF
+          ssh -i ~/.ssh/id_rsa \
+              -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=60 \
+              -o ServerAliveCountMax=10 \
+              ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            set -ex
+            cd /home/ec2-user/.ssh # Update if needed
 
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Building Docker image..."
+            timeout 10m docker build -t playwright_test .
+
+            echo "Running tests..."
+            timeout 15m docker run --rm \
+              -v $(pwd)/allure-report:/usr/src/app/allure-report \
+              playwright_test
+
+            echo "Uploading Allure report..."
+            aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
+
+            echo "✅ Done"
+          EOF
+      
+      
 
       - name: Install K3s & Deploy Tests
         run: |
