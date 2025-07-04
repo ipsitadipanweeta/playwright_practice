@@ -38,29 +38,13 @@ jobs:
 
       - name: Run tests and upload Allure report on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e  # Exit immediately if any command fails
-            
-            # Install git (fixes the error)
-            sudo yum update -y
-            sudo yum install -y git
-          
-            # Ensure repo is up-to-date
-            git pull origin main
-      
-            # Build Docker image
-            docker build -t playwright_allure2/playwright_test:latest .
-      
-            # Run tests
-            docker run --rm \
-              -v $(pwd)/allure-report:/usr/src/app/allure-report \
-              playwright_allure2/playwright_test
-      
-            # Upload Allure report to S3
-            aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
-      
-            echo "✅ Tests completed and report uploaded."
-          EOF
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+              cd /home/ec2-user/.ssh
+              git pull origin main
+              docker build -t playwright_allure2/playwright_test:latest .
+              docker run --rm -v $(pwd)/allure-report:/usr/src/app/allure-report playwright_allure2/playwright_test
+              aws s3 cp allure-report s3://ipsitas3/allure-report --recursive
+            EOF
 
 
       - name: Install K3s & Deploy Tests
