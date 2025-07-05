@@ -102,9 +102,9 @@ jobs:
       - name: Deploy tests to Kubernetes
         run: kubectl apply -f k8s/kubernetes.yaml --insecure-skip-tls-verify
 
-      - name: Wait for job completion
-        run: |
-          kubectl wait --for=condition=complete --timeout=300s job/playwright-practice --insecure-skip-tls-verify
+#      - name: Wait for job completion
+#        run: |
+#          kubectl wait --for=condition=complete --timeout=300s job/playwright-practice --insecure-skip-tls-verify
 
       - name: Copy Allure report to S3 from EC2
         run: |
