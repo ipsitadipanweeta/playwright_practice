@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: playwright_practice
+  name: playwright-practice
 spec:
   parallelism: 2
   completions: 2
