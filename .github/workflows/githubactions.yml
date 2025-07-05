@@ -100,7 +100,7 @@ jobs:
           kubectl version --client
 
       - name: Deploy tests to Kubernetes
-        run: kubectl apply -f k8s/kubernetes.yaml
+        run: kubectl apply -f k8s/kubernetes.yaml --insecure-skip-tls-verify
 
       - name: Wait for job completion
         run: |
