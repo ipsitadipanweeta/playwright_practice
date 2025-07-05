@@ -62,11 +62,18 @@ jobs:
 #            echo "✅ Done"
 #          EOF
 #
-      - name: Apply Kubernetes manifests via SSH
+      - name: Install kubectl via SSH on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            kubectl apply -f /home/ec2-user/k8s/kubernetes.yaml
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << EOF
+          set -e
+          K8S_VERSION=v1.29.0
+
+          echo "Downloading kubectl \$K8S_VERSION..."
+          curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
           EOF
+      
 
       - name: Install K3s and Setup Kubernetes Cluster
         run: |
