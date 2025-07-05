@@ -1,9 +1,11 @@
 package tests.ui;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import pages.LoginPage;
 import utils.TestBase;
 
+@Tag("smoke")
 public class LoginTest extends TestBase {
 
     @Test

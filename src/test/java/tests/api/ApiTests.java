@@ -3,9 +3,11 @@ package tests.api;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.*;
+@Tag("regression")
 
 public class ApiTests {
 
