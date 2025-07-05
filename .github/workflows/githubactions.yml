@@ -109,7 +109,7 @@ jobs:
       - name: Copy Allure report to S3 from EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            aws s3 cp /home/ec2-user/allure-report s3://your-s3-bucket/allure-report --recursive
+            aws s3 cp /home/ec2-user/allure-report s3://ipsitas3/allure-report --recursive
           EOF
 
       - name: Stop EC2 instance
