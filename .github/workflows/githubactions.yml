@@ -73,8 +73,14 @@ jobs:
           sudo mv kubectl /usr/local/bin/
           kubectl version --client
 
-      - name: Deploy tests to Kubernetes
-        run: kubectl apply -f k8s/kubernetes.yaml --insecure-skip-tls-verify
+      - name: Delete previous Job (if exists)
+        run: |
+          kubectl delete job playwright-practice --ignore-not-found --insecure-skip-tls-verify
+
+      - name: Deploy updated Job to Kubernetes
+        run: |
+          kubectl apply -f k8s/kubernetes.yaml --insecure-skip-tls-verify
+      
 
       - name: Copy Allure report to S3 from EC2
         run: |
