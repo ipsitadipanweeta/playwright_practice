@@ -52,14 +52,13 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <version>3.2.5</version>
                         <configuration>
-                            <properties>
-                                <!-- These system properties are passed in via command line -->
-                                <property>
-                                    <name>junit.jupiter.tags</name>
-                                    <value>smoke</value>
-                                    <value>regression</value>
-                                </property>
-                            </properties>
+                            <includes>
+                                <include>**/*Test.java</include>
+                            </includes>
+                            <systemPropertyVariables>
+                                <!-- To pass tags at runtime -->
+                                <junit.jupiter.tags>smoke</junit.jupiter.tags>
+                            </systemPropertyVariables>
                         </configuration>
                     </plugin>
                     <!-- Allure plugin -->
