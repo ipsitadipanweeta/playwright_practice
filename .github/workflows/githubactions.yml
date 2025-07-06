@@ -1,94 +1,55 @@
-name: EC2 Test Runner with Allure Upload
+name: Run Playwright Tests on KinD Kubernetes
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  run-on-ec2:
+  kind-k8s:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2  # adjust if your EC2 is in another region
-
-      - name: Start EC2 Instance
+      - name: Install KinD
         run: |
-          aws ec2 start-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
-          echo "Waiting for EC2 to become ready..."
-          aws ec2 wait instance-running --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
-          echo "Waiting for EC2 status checks to pass..."
-          aws ec2 wait instance-status-ok --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
-          echo "Waiting extra 30 seconds for SSH to be ready..."
-          sleep 30
-
-      - name: Setup SSH for EC2 access
-        run: |
-          mkdir -p $HOME/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/id_rsa
-          chmod 600 $HOME/.ssh/id_rsa
-
-      - name: Install kubectl via SSH on EC2
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << EOF
-          set -e
-          K8S_VERSION=v1.29.0
-
-          echo "Downloading kubectl \$K8S_VERSION..."
-          curl -LO https://dl.k8s.io/release/\$K8S_VERSION/bin/linux/amd64/kubectl
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          EOF
-      
-
-      - name: Install K3s and Setup Kubernetes Cluster
-        run: |
-            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            curl -sfL https://get.k3s.io | sh -
-            mkdir -p ~/.kube
-            sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-            sudo chown $(id -u):$(id -g) ~/.kube/config
-            EOF
-
-      - name: Copy kubeconfig from EC2 to runner
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} 'cat ~/.kube/config' > kubeconfig
-          mkdir -p ~/.kube
-          sed -i "s/127.0.0.1/${{ secrets.EC2_HOST }}/g" kubeconfig
-          mv kubeconfig ~/.kube/config
+          curl -Lo kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/
 
       - name: Install kubectl
         run: |
-          KUBECTL_VERSION="v1.29.0"
-          curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/$(curl -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
-          kubectl version --client
 
-      - name: Delete previous Job (if exists)
+      - name: Create KinD Cluster
         run: |
-          kubectl delete job playwright-practice --ignore-not-found --insecure-skip-tls-verify
+          kind create cluster --name test-cluster
 
-      - name: Deploy updated Job to Kubernetes
+      - name: Build Docker Image
         run: |
-          kubectl apply -f k8s/kubernetes.yaml --insecure-skip-tls-verify
-      
+          docker build -t playwright_test:latest .
 
-      - name: Copy Allure report to S3 from EC2
+      - name: Load Image into KinD
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            aws s3 cp /home/ec2-user/allure-report s3://ipsitas3/allure-report --recursive
-          EOF
+          kind load docker-image playwright_test:latest --name test-cluster
 
-      - name: Stop EC2 instance
+      - name: Apply Kubernetes Job
+        run: |
+          kubectl apply -f k8s/kubernetes.yaml
+
+      - name: Wait for Job to Complete
+        run: |
+          kubectl wait --for=condition=complete --timeout=300s job/playwright-practice
+
+      - name: Fetch Logs
+        run: |
+          kubectl logs job/playwright-practice
+
+      - name: Delete KinD Cluster (Cleanup)
         if: always()
         run: |
-          aws ec2 stop-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
+          kind delete cluster --name test-cluster
