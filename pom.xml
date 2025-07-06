@@ -51,16 +51,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
-                <configuration>
-                    <properties>
-                        <!-- These system properties are passed in via command line -->
-                        <property>
-                            <name>junit.jupiter.tags</name>
-                            <!--suppress UnresolvedMavenProperty -->
-                            <value>${junitTags}</value>
-                        </property>
-                    </properties>
-                </configuration>
             </plugin>
         </plugins>
     </build>
