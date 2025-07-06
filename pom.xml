@@ -56,6 +56,8 @@
                                 <!-- These system properties are passed in via command line -->
                                 <property>
                                     <name>junit.jupiter.tags</name>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <value>${junitTags}</value>
                                 </property>
                             </properties>
                         </configuration>
