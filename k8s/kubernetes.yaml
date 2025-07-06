@@ -4,7 +4,7 @@ metadata:
   name: playwright-practice
 spec:
   parallelism: 1
-  completions: 2
+  completions: 1
   template:
     spec:
       containers:

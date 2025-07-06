@@ -3,8 +3,8 @@ kind: Job
 metadata:
   name: playwright-practice1
 spec:
-  parallelism: 2
-  completions: 2
+  parallelism: 1
+  completions: 1
   template:
     spec:
       containers:
